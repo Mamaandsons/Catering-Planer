@@ -1,0 +1,3263 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foodtruck &amp; Catering Planer</title>
+<style>
+:root {
+  color-scheme: light;
+  --orange: #e8622c;
+  --dark: #22262b;
+  --bg: #f7f5f2;
+  --border: #ddd6cc;
+  --green: #2f7d4f;
+  --red: #b23a3a;
+}
+* { box-sizing: border-box; }
+html, body {
+  background: var(--bg);
+  color: var(--dark);
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.topbar {
+  background: var(--dark);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.topbar .brand { color: #fff; font-weight: 700; font-size: 1.05em; }
+.topbar nav a, .topbar nav button {
+  color: #f1efe9;
+  text-decoration: none;
+  margin-left: 12px;
+  font-size: 0.92em;
+  background: transparent;
+  border: 1px solid #454b52;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.topbar nav a:hover, .topbar nav button:hover { border-color: var(--orange); color: var(--orange); }
+.container { max-width: 1100px; margin: 0 auto; padding: 22px; }
+h1, h2, h3 { color: var(--dark); }
+a { color: var(--orange); cursor: pointer; }
+.flash { padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; }
+.flash-success { background: #e4f3e9; color: var(--green); border: 1px solid var(--green); }
+.flash-error { background: #fbe9e7; color: var(--red); border: 1px solid var(--red); }
+.card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
+.card-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.78em; font-weight: 600; background: #eee; color: #555; }
+.badge-foodtruck { background: #fde3d1; color: var(--orange); }
+.badge-buffet { background: #dcecf7; color: #2b6ca3; }
+.badge-live_cooking { background: #eadcf7; color: #7443ab; }
+.badge-review { background: #fbe9e7; color: var(--red); }
+.badge-ok { background: #e4f3e9; color: var(--green); }
+table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+th, td { padding: 7px 9px; border-bottom: 1px solid var(--border); text-align: left; font-size: 0.92em; }
+th { background: #efeae2; }
+.btn { display: inline-block; background: var(--orange); color: #fff; border: none; padding: 9px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 0.92em; font-family: inherit; }
+.btn:hover { background: #cf4f1e; }
+.btn-secondary { background: #6c7480; }
+.btn-secondary:hover { background: #565d67; }
+.btn-danger { background: var(--red); }
+.btn-small { padding: 5px 10px; font-size: 0.82em; }
+form .field { margin-bottom: 12px; }
+form label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.9em; }
+input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.92em; font-family: inherit; background: #fff; color: var(--dark); }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.row4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+@media (max-width: 700px) { .row3, .row4, .dish-row-grid, .ing-row-grid { grid-template-columns: 1fr !important; } }
+.dish-row, .ing-row { border: 1px dashed var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px; background: #fbfaf8; }
+.dish-row-grid { display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 0.8fr auto; gap: 8px; align-items: end; }
+.ing-row-grid { display: grid; grid-template-columns: 1.8fr 0.7fr 0.7fr 1.1fr 0.9fr 0.9fr 0.9fr 1fr auto; gap: 6px; align-items: end; }
+.remove-btn { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 1.05em; }
+.variant-group-block { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.muted { color: #888; font-size: 0.86em; }
+.warning-box { background: #fff4e0; border: 1px solid #e8b23c; border-radius: 8px; padding: 10px 14px; margin: 12px 0; color: #7a5a10; font-size: 0.92em; }
+.field-inline { display:flex; align-items:center; gap:8px; margin-top:20px; }
+.field-inline input { width:auto; }
+@media print {
+  .no-print { display: none !important; }
+  .container { max-width: 100%; padding: 0; }
+  body { background: #fff; }
+  .card { border: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Firebase Realtime Database: gemeinsame, geteilte Datenbasis für alle Mitarbeiter.
+     Läuft nur, wenn die Seite über einen echten Browser (nicht die Cowork-Vorschau) mit
+     Internetzugriff auf gstatic.com/firebaseio.com geöffnet wird. -->
+<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-database-compat.js"></script>
+
+<script type="application/json" id="seed-data">
+{
+  "recipes": [
+    {
+      "name": "The BBQ Pit - Pulled Burger",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": true,
+      "ingredients": [
+        {
+          "name": "Burger Buns",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "OVP",
+          "tool": "Brotmesser",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pulled Pork/Turkey",
+          "qty_per_portion": 0.0733,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": "Protein"
+        },
+        {
+          "name": "Pulled Jackfruit",
+          "qty_per_portion": 0.0587,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": "Protein"
+        },
+        {
+          "name": "Cole Slaw",
+          "qty_per_portion": 0.0534,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie",
+            "Senf",
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Kartoffelchips",
+          "qty_per_portion": 0.007,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/3 GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Guacamole",
+          "qty_per_portion": 0.0252,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pulled Turkey",
+          "qty_per_portion": 0.0654,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": "Protein"
+        },
+        {
+          "name": "Pulled Pork",
+          "qty_per_portion": 0.0796,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": "Protein"
+        },
+        {
+          "name": "Käsesauce",
+          "qty_per_portion": 0.056,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose"
+          ],
+          "container": "1/3 GN",
+          "tool": "Saucenkelle",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Saure Gurken",
+          "qty_per_portion": 0.01,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/9 GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Nachos mit Chili-cheese sauce oder Guacamole topping",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Nachos",
+          "qty_per_portion": 0.1,
+          "unit": "kg",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "1/2 GN",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Käsesauce",
+          "qty_per_portion": 0.0425,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose"
+          ],
+          "container": "1/2 GN",
+          "tool": "Saucenkelle",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Jalapenos",
+          "qty_per_portion": 0.01,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/6 GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Guacamole",
+          "qty_per_portion": 0.04,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "Löffel, mittel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Koriander - Rote Zwiebel Mix",
+          "qty_per_portion": 0.005,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "1/6 GN",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Skin on Fries - mit klassischem Ketchup oder Mayo, vegan",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": true,
+      "ingredients": [
+        {
+          "name": "Skin on fries",
+          "qty_per_portion": 0.16,
+          "unit": "kg",
+          "allergens": [],
+          "container": "Thermobox",
+          "tool": "Schaumkelle",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pommessalz",
+          "qty_per_portion": 0.0016,
+          "unit": "kg",
+          "allergens": [],
+          "container": "Streuer",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Frittieröl",
+          "qty_per_portion": 0.2714,
+          "unit": "l",
+          "allergens": [],
+          "container": "OVP",
+          "tool": "(GN+Thermodeckel)",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Trüffelmayo",
+          "qty_per_portion": 0.03,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose",
+            "Senf"
+          ],
+          "container": "Spritzflasche",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Rotwein-Cranberry Ketchup",
+          "qty_per_portion": 0.03,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie",
+            "Senf",
+            "Sulfite"
+          ],
+          "container": "Spritzflasche",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Mayo, vegan",
+          "qty_per_portion": 0.02,
+          "unit": "kg",
+          "allergens": [
+            "Senf"
+          ],
+          "container": "Spritzflasche",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Ketchup",
+          "qty_per_portion": 0.02,
+          "unit": " kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "Spritzflasche",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Aioli",
+          "qty_per_portion": 0.015,
+          "unit": "kg",
+          "allergens": [
+            "Senf",
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "mexican Bowls: die Burrito Bowl",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": true,
+      "ingredients": [
+        {
+          "name": "Chipotle Chicken",
+          "qty_per_portion": 0.05,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/3 GN",
+          "tool": null,
+          "supplier": null,
+          "variant_group": "Protein"
+        },
+        {
+          "name": "Picadillo Soy",
+          "qty_per_portion": 0.0375,
+          "unit": "kg",
+          "allergens": [
+            "Soja"
+          ],
+          "container": "1/3 GN",
+          "tool": null,
+          "supplier": null,
+          "variant_group": "Protein"
+        },
+        {
+          "name": "Guacamole",
+          "qty_per_portion": 0.0625,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "schwarzer Bohnen Dip",
+          "qty_per_portion": 0.08,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/3 GN",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Kurkuma Reis",
+          "qty_per_portion": 0.12,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/1 GN",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Saure Sahne",
+          "qty_per_portion": 0.03,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose"
+          ],
+          "container": "schw. Eimer",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Salsa Verde",
+          "qty_per_portion": 0.03,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Corn Salsa",
+          "qty_per_portion": 0.04,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pflücksalat",
+          "qty_per_portion": 0.05,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/2 GN",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Jalapenos",
+          "qty_per_portion": 0.01,
+          "unit": "kg",
+          "allergens": [],
+          "container": "schw. Eimer",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Hot Sauces",
+          "qty_per_portion": 0.0333,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "OVP",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Nachos",
+          "qty_per_portion": 0.01,
+          "unit": "kg",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "1/2 GN",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Sac Kebap Sandwich mit Tabouleh Salat und Joghurt- Sauce",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Sandwich Brote",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "OVP",
+          "tool": "Brotmesser",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Kebap Chicken",
+          "qty_per_portion": 0.075,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "1/1 GN",
+          "tool": "Palette/gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Petersilien Salat",
+          "qty_per_portion": 0.05,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "1/1 GN",
+          "tool": "Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Joghurt Sauce",
+          "qty_per_portion": 0.025,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose"
+          ],
+          "container": "Spritzflaschen",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "vegane Funky Falafel aus Edamame und Rote Beete, serviert mit Bulgur, Petersilie, Tomate, Gurke, Zwiebeln und veganer Joghurt-Sauce, dazu Pide und eingelegtes Marktgemüse",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Bulgur mit Gemüse",
+          "qty_per_portion": 0.1,
+          "unit": "kg",
+          "allergens": [
+            "Gluten",
+            "Sulfite"
+          ],
+          "container": "1/1 GN (10er)",
+          "tool": "Reisportionierer",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pflücksalat",
+          "qty_per_portion": 0.025,
+          "unit": "kg",
+          "allergens": [],
+          "container": "OVP",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "eingelegtes Gemüse",
+          "qty_per_portion": 0.02,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Joghurtdressing",
+          "qty_per_portion": 0.025,
+          "unit": "l",
+          "allergens": [
+            "Milch/Laktose"
+          ],
+          "container": "Spritzflasche",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "funky Falafel",
+          "qty_per_portion": 2,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten",
+            "Soja"
+          ],
+          "container": "1/1 GN (10er)",
+          "tool": "Schaumkelle",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Sandwich Brote",
+          "qty_per_portion": 0.5,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "1/1 GN (10er)",
+          "tool": "Brotmesser",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "International Sweets X Baklava - Dessertbuffet mit unterschiedlichen Berlinern, Brownies, NY Cheesecakes und einer Baklava- Variation",
+      "description": null,
+      "default_service_type": "buffet",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Mini Berliner",
+          "qty_per_portion": 0.25,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "1/1 GN (10er)",
+          "tool": "Schaumkelle",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "NY Cheesecake",
+          "qty_per_portion": 0.25,
+          "unit": "Stück",
+          "allergens": [
+            "Ei",
+            "Gluten",
+            "Milch/Laktose"
+          ],
+          "container": "Mexico Platte",
+          "tool": "Gebäckzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Brownies mit Karamell und Puderzucker",
+          "qty_per_portion": 0.25,
+          "unit": "Stück",
+          "allergens": [
+            "Ei",
+            "Milch/Laktose"
+          ],
+          "container": "Mexico Platte",
+          "tool": "Gebäckzange",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Tacos mit gegrillter Jackfruit/chipotle chicken, Koriander-Zwiebelmix frischem Pico de Gallo, und eingelegten Pink Onions",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Softshell Taco",
+          "qty_per_portion": 3,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pulled Jackfruit",
+          "qty_per_portion": 0.0225,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/1 GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Chipotle Chicken",
+          "qty_per_portion": 0.0675,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/1 GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "pickled Onions",
+          "qty_per_portion": 0.012,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "GN",
+          "tool": "Gabel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pico de Gallo",
+          "qty_per_portion": 0.07,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Chipotle Sour Cream",
+          "qty_per_portion": 0.0187,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose",
+            "Senf"
+          ],
+          "container": "Spritzflasche",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Aromaöl",
+          "qty_per_portion": 0.0025,
+          "unit": "l",
+          "allergens": [],
+          "container": "Spritzflasche",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Nachobar #DIY - Mit Maisnachos, Tortillas, Guacamole, Sour Cream, verschiedenen Salsas und hot sauces",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": true,
+      "ingredients": [
+        {
+          "name": "Maisnachos",
+          "qty_per_portion": 0.09,
+          "unit": "kg",
+          "allergens": [],
+          "container": "GN",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pico de Gallo",
+          "qty_per_portion": 0.045,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Sour Cream",
+          "qty_per_portion": 0.0271,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose",
+            "Senf"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Guacamole",
+          "qty_per_portion": 0.05,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Jalapenos",
+          "qty_per_portion": 0.0131,
+          "unit": "kg",
+          "allergens": [],
+          "container": "GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Salsa Verde",
+          "qty_per_portion": 0.02,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "GN",
+          "tool": "kl. Saucenkelle",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Corn Salsa",
+          "qty_per_portion": 0.05,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Hot Sauces",
+          "qty_per_portion": 0.0281,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "OVP",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "pineapple-salsa",
+          "qty_per_portion": 0.0356,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Tex Mex Salad",
+          "qty_per_portion": 0.075,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Koriander - Rote Zwiebel Mix",
+          "qty_per_portion": 0.005,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "1/6 GN",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Quiche Menü mit großer Salatbeilage (Hauptspeise)",
+      "description": null,
+      "default_service_type": "buffet",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Rosmarin-Kartoffel-Quiche",
+          "qty_per_portion": 0.25,
+          "unit": "Stück",
+          "allergens": [
+            "Ei",
+            "Gluten",
+            "Milch/Laktose"
+          ],
+          "container": "OVP",
+          "tool": "Palette",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Klassisch Zucchini-Parmesan-Quiche",
+          "qty_per_portion": 0.25,
+          "unit": "Stück",
+          "allergens": [
+            "Milch/Laktose"
+          ],
+          "container": "OVP",
+          "tool": "Palette",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Quiche mit gegrilltem Marktgemüse",
+          "qty_per_portion": 0.25,
+          "unit": "Stück",
+          "allergens": [
+            "Ei",
+            "Gluten",
+            "Milch/Laktose"
+          ],
+          "container": "OVP",
+          "tool": "Palette",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Beef & Tomaten-Quiche",
+          "qty_per_portion": 0.25,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "OVP",
+          "tool": "Palette",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Rote Bete Salat",
+          "qty_per_portion": 0.04,
+          "unit": "kg",
+          "allergens": [],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "klassischer Gurkensalat",
+          "qty_per_portion": 0.04,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pflücksalat",
+          "qty_per_portion": 0.035,
+          "unit": "kg",
+          "allergens": [],
+          "container": "Champagner Bowl",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Senfvinaigrette",
+          "qty_per_portion": 0.02,
+          "unit": "l",
+          "allergens": [
+            "Senf"
+          ],
+          "container": "Glasflasche (weck)",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Drinks",
+      "description": null,
+      "default_service_type": "buffet",
+      "needs_review": true,
+      "ingredients": [
+        {
+          "name": "Fritz Kola",
+          "qty_per_portion": null,
+          "unit": "Flaschen",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Fritz Kola Zero",
+          "qty_per_portion": null,
+          "unit": "Flaschen",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Fritz Apfelschorle (Bio)",
+          "qty_per_portion": null,
+          "unit": "Flaschen",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Fritz Rhabarbar Schorle (Bio)",
+          "qty_per_portion": null,
+          "unit": "Kisten",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Fritz Orange",
+          "qty_per_portion": null,
+          "unit": "Kisten",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Viva con Agua laut",
+          "qty_per_portion": null,
+          "unit": "Flaschen",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Viva con Agua leise",
+          "qty_per_portion": null,
+          "unit": "Flaschen",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Eiswürfel",
+          "qty_per_portion": null,
+          "unit": "Kg",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Fritz Ingwer - Limette",
+          "qty_per_portion": null,
+          "unit": "Flaschen",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Fritz Zitrone",
+          "qty_per_portion": null,
+          "unit": "Flaschen",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Weissweinschorle",
+          "qty_per_portion": null,
+          "unit": "Flaschen",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Bier, Helles",
+          "qty_per_portion": null,
+          "unit": "Fass",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Quartiermeister",
+          "qty_per_portion": null,
+          "unit": "Fass",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Helles, alk. frei",
+          "qty_per_portion": null,
+          "unit": "Flaschen",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Grillbuffet",
+      "description": null,
+      "default_service_type": "buffet",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Hähnchensteak-Paprika",
+          "qty_per_portion": 0.5625,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "Vakuum  + GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Bratwurst (getrocknete Tomate)",
+          "qty_per_portion": 0.325,
+          "unit": "Stück",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Chorizo",
+          "qty_per_portion": 0.325,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "vegane Bratwurst",
+          "qty_per_portion": 0.35,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "1/1 GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "green goddess Salat",
+          "qty_per_portion": 0.06,
+          "unit": "kg",
+          "allergens": [
+            "Soja"
+          ],
+          "container": "1/1 GN",
+          "tool": "Löffel, gross",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "green goddess Dressing",
+          "qty_per_portion": 0.015,
+          "unit": "l",
+          "allergens": [
+            "Milch/Laktose",
+            "Senf",
+            "Sulfite"
+          ],
+          "container": "1/1 GN",
+          "tool": "Löffel, gross",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Feta in Backpapier, halbiert",
+          "qty_per_portion": 0.5,
+          "unit": "Stück",
+          "allergens": [
+            "Milch/Laktose",
+            "Sulfite"
+          ],
+          "container": "1/1 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "mediterraner Nudelsalat",
+          "qty_per_portion": 0.06,
+          "unit": "kg",
+          "allergens": [
+            "Gluten",
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "Löffel, gross",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Kartoffelsalat",
+          "qty_per_portion": 0.06,
+          "unit": "kg",
+          "allergens": [
+            "Senf",
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "Löffel, gross",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Blattsalat, Bari",
+          "qty_per_portion": 0.025,
+          "unit": "kg",
+          "allergens": [],
+          "container": "Schüssel",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Orangendressing",
+          "qty_per_portion": 0.015,
+          "unit": "l",
+          "allergens": [
+            "Senf"
+          ],
+          "container": "Karaffe",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Brotvariation",
+          "qty_per_portion": 0.04,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "Brotkorb",
+          "tool": "Brotmesser",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Garnelenspiess",
+          "qty_per_portion": 0.65,
+          "unit": "Stück",
+          "allergens": [
+            "Krebstiere/Weichtiere"
+          ],
+          "container": "Brotkorb",
+          "tool": "Brotmesser",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Nachobar #DIY - Mit Maisnachos, Tortillas, BBQ Jackfruit, Chipotle Chicken,, Guacamole, Sour Cream, verschiedenen Salsas und hot sauces",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "softshell Taco",
+          "qty_per_portion": 1.5,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "Tacowärmer",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Hardshell Taco",
+          "qty_per_portion": 0.5,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "Brotkorb",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Chipotle Chicken",
+          "qty_per_portion": 0.0455,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/1  GN",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Jackfruit BBQ",
+          "qty_per_portion": 0.0245,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/1  GN",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Maisnachos",
+          "qty_per_portion": 0.075,
+          "unit": "kg",
+          "allergens": [],
+          "container": "Champagnerbowl",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pico de Gallo",
+          "qty_per_portion": 0.02,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Sour Cream",
+          "qty_per_portion": 0.0163,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose",
+            "Senf"
+          ],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "cheddar, gerieben",
+          "qty_per_portion": 0.013,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose"
+          ],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Guacamole",
+          "qty_per_portion": 0.05,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Jalapenos",
+          "qty_per_portion": 0.016,
+          "unit": "kg",
+          "allergens": [],
+          "container": "Schüssel",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Salsa Verde",
+          "qty_per_portion": 0.015,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "kl. Saucenkelle",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Corn Salsa",
+          "qty_per_portion": 0.04,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "pineapple-salsa",
+          "qty_per_portion": 0.025,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Hot Sauces",
+          "qty_per_portion": 0.0187,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "OVP",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pink Onions",
+          "qty_per_portion": 0.0035,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Limettenachtel",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "Schüssel",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "rote Zwiebel, Ringe",
+          "qty_per_portion": 0.001,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/9 GN",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Koriander",
+          "qty_per_portion": 0.001,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/9 GN",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Panna Cotta mit Waldbeer-Sauce || Kokos-Chia Panna Cotta mit Mangospiegel",
+      "description": null,
+      "default_service_type": "buffet",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Panna cotta im Glas",
+          "qty_per_portion": 0.5,
+          "unit": "Stück",
+          "allergens": [
+            "Milch/Laktose"
+          ],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Chiapudding mit Mangopüree",
+          "qty_per_portion": 0.5,
+          "unit": "Stück",
+          "allergens": [
+            "Milch/Laktose",
+            "Soja"
+          ],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Burger, Bratwurst & Fries Burger",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Burger Buns",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "OVP",
+          "tool": "Brotmesser",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pulled Pork",
+          "qty_per_portion": 0.1,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/1 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pulled Turkey",
+          "qty_per_portion": 0.1,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pulled Jackfruit",
+          "qty_per_portion": 0.1,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Cole Slaw",
+          "qty_per_portion": 0.07,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie",
+            "Senf",
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Kartoffelchips",
+          "qty_per_portion": 0.007,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/3 GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Guacamole",
+          "qty_per_portion": 0.07,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Bratwurst im Brötchen",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten",
+            "Sellerie",
+            "Senf"
+          ],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Knabbermix, Grissini, Oliven und Gemüsesticks",
+      "description": null,
+      "default_service_type": "buffet",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Grissini",
+          "qty_per_portion": 0.05,
+          "unit": "kg",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "weck, gross",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "marinierte Oliven",
+          "qty_per_portion": 0.1,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "weck, Suppe",
+          "tool": "Bambusspiesse",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Gemüsestick, im Glas",
+          "qty_per_portion": 0.125,
+          "unit": "kg",
+          "allergens": [
+            "Gluten",
+            "Milch/Laktose",
+            "Sellerie",
+            "Senf"
+          ],
+          "container": "weck, Suppe",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Knabbermix",
+          "qty_per_portion": 0.1,
+          "unit": "kg",
+          "allergens": [
+            "Erdnüsse",
+            "Schalenfrüchte/Nüsse"
+          ],
+          "container": "weck, Suppe",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Hot Dog Station",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Hot dog buns",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "OVP",
+          "tool": "Brotmesser",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Wiener Würstchen",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "vegane Würstchen",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Remoulade",
+          "qty_per_portion": 0.007,
+          "unit": "kg",
+          "allergens": [
+            "Senf",
+            "Sulfite"
+          ],
+          "container": "OVP",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Ketchup",
+          "qty_per_portion": 0.015,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "OVP",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Senf",
+          "qty_per_portion": 0.015,
+          "unit": "kg",
+          "allergens": [
+            "Senf"
+          ],
+          "container": "OVP",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "dänische Gurken",
+          "qty_per_portion": 0.03,
+          "unit": "kg",
+          "allergens": [],
+          "container": "Schüssel",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Röstzwiebel",
+          "qty_per_portion": 0.01,
+          "unit": "kg",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "Schüssel",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Tacos mit gegrillter pork carnitas oder chipotle chicken, frischem Pico de Gallo, und eingelegten Pink Onions",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Softshell Taco",
+          "qty_per_portion": 3,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Hardshell Taco",
+          "qty_per_portion": 0.5,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Carnitas Pork",
+          "qty_per_portion": 0.08,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/1 GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Chipotle Chicken",
+          "qty_per_portion": 0.08,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/1 GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "pickled Onions",
+          "qty_per_portion": 0.012,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "GN",
+          "tool": "Gabel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pico de Gallo",
+          "qty_per_portion": 0.07,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "Gabel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "cheddar mix",
+          "qty_per_portion": 0.0187,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/9 GN",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Aromaöl",
+          "qty_per_portion": 0.02,
+          "unit": "l",
+          "allergens": [],
+          "container": "Spritzflasche",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Eisbergsalat",
+          "qty_per_portion": 0.0187,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/2 GN",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Tacos mit Picadillo Beef and Soy, Koriander-Zwiebelmix frischem Pico de Gallo, und eingelegten Pink Onions",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": true,
+      "ingredients": [
+        {
+          "name": "Softshell Taco",
+          "qty_per_portion": 3,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Hardshell Taco",
+          "qty_per_portion": 0.5,
+          "unit": "Stück",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Picadillo Soy",
+          "qty_per_portion": 0.07,
+          "unit": "kg",
+          "allergens": [
+            "Soja"
+          ],
+          "container": "1/1 GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Picadillo Beef",
+          "qty_per_portion": 0.084,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/1 GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "pickled Onions",
+          "qty_per_portion": 0.012,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "GN",
+          "tool": "Gabel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pico de Gallo",
+          "qty_per_portion": 0.07,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "cheddar, gerieben",
+          "qty_per_portion": 0.0187,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose"
+          ],
+          "container": "Spritzflasche",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Aromaöl",
+          "qty_per_portion": 0.02,
+          "unit": "l",
+          "allergens": [],
+          "container": "Spritzflasche",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Eisbergsalat",
+          "qty_per_portion": 0.03,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/2 GN",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Limetten, geachtelt",
+          "qty_per_portion": null,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "1/1 GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "MITTERNACHTSSNACK REFILL - Nachobar #DIY - Mit Maisnachos, Tortillas, Guacamole, Sour Cream, verschiedenen Salsas und hot sauces",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": true,
+      "ingredients": [
+        {
+          "name": "Maisnachos",
+          "qty_per_portion": 0.075,
+          "unit": "kg",
+          "allergens": [],
+          "container": "GN",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pico de Gallo",
+          "qty_per_portion": 0.025,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Sour Cream",
+          "qty_per_portion": 0.01,
+          "unit": "kg",
+          "allergens": [
+            "Milch/Laktose",
+            "Senf"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Guacamole",
+          "qty_per_portion": 0.025,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Jalapenos",
+          "qty_per_portion": 0.005,
+          "unit": "kg",
+          "allergens": [],
+          "container": "GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Salsa Verde",
+          "qty_per_portion": 0.01,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "GN",
+          "tool": "kl. Saucenkelle",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Hot Sauces",
+          "qty_per_portion": 0.02,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "OVP",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "pineapple-salsa",
+          "qty_per_portion": 0.02,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "Schüssel",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Hardshell Taco",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [],
+          "container": "Brotkorb",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pulled Jackfruit",
+          "qty_per_portion": 0.07,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/1 GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Chipotle Chicken",
+          "qty_per_portion": 0.07,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/1 GN",
+          "tool": "Grillzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Koriander - Rote Zwiebel Mix",
+          "qty_per_portion": 0.005,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "1/6 GN",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Eiswürfel",
+          "qty_per_portion": null,
+          "unit": "kg",
+          "allergens": [],
+          "container": null,
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "Rucolasalat mit Kirschtomaten, roh mariniertem Fenchel und Balsamikoreduktion",
+      "description": null,
+      "default_service_type": "buffet",
+      "needs_review": true,
+      "ingredients": [
+        {
+          "name": "Rucolasalat im Glas",
+          "qty_per_portion": null,
+          "unit": "Stück",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "weck, Suppe",
+          "tool": null,
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Balsamicoreduktion",
+          "qty_per_portion": 0.01,
+          "unit": "kg",
+          "allergens": [],
+          "container": "GN",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "tomatisiertes Risotto mit Antipasti Gemüse, und Hähnchensteak à la Genovese (omnivore) ODER Rote Bete Gnocchi mit Anti Pasti Gemüse und hausgemachten Pesto (vegan)",
+      "description": null,
+      "default_service_type": "buffet",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Maisnachos",
+          "qty_per_portion": 0.1,
+          "unit": "kg",
+          "allergens": [],
+          "container": "GN",
+          "tool": "Salatzange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "tomatisiertes Risotto",
+          "qty_per_portion": 0.2,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie",
+            "Sulfite"
+          ],
+          "container": "1/2 GN",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Anti Pasti Gemüse",
+          "qty_per_portion": 0.2,
+          "unit": "kg",
+          "allergens": [
+            "Gluten",
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "gr. Löffel",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    },
+    {
+      "name": "The BBQ Pit - Pulled Burger OHNE CRANBERRIES",
+      "description": null,
+      "default_service_type": "foodtruck",
+      "needs_review": false,
+      "ingredients": [
+        {
+          "name": "Burger Buns",
+          "qty_per_portion": 1,
+          "unit": "Stück",
+          "allergens": [
+            "Gluten"
+          ],
+          "container": "OVP",
+          "tool": "Brotmesser",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Pulled Pork",
+          "qty_per_portion": 0.11,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": "Protein"
+        },
+        {
+          "name": "Pulled Jackfruit",
+          "qty_per_portion": 0.11,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie"
+          ],
+          "container": "1/2 GN",
+          "tool": "Zange",
+          "supplier": null,
+          "variant_group": "Protein"
+        },
+        {
+          "name": "Cole Slaw",
+          "qty_per_portion": 0.0656,
+          "unit": "kg",
+          "allergens": [
+            "Sellerie",
+            "Senf",
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "Löffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Kartoffelchips",
+          "qty_per_portion": 0.007,
+          "unit": "kg",
+          "allergens": [],
+          "container": "1/3 GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "Guacamole",
+          "qty_per_portion": 0.05,
+          "unit": "kg",
+          "allergens": [
+            "Sulfite"
+          ],
+          "container": "schw. Eimer",
+          "tool": "Esslöffel",
+          "supplier": null,
+          "variant_group": null
+        },
+        {
+          "name": "saure Gurke",
+          "qty_per_portion": 0.01,
+          "unit": "kg",
+          "allergens": [
+            "Senf"
+          ],
+          "container": "1/9 GN",
+          "tool": "kl. Zange",
+          "supplier": null,
+          "variant_group": null
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<header class="topbar no-print">
+  <div class="brand">🚚 Foodtruck &amp; Catering Planer</div>
+  <nav>
+    <a href="#/">Dashboard</a>
+    <a href="#/events/new">+ Event</a>
+    <a href="#/recipes">Rezepte</a>
+    <a href="#/day-plan">Tages-Kochplan</a>
+    <a href="#/orders">Bestellliste</a>
+    <button onclick="exportData()">Export</button>
+    <button onclick="document.getElementById('import-file').click()">Import</button>
+    <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importDataFile(this)">
+  </nav>
+</header>
+
+<main class="container" id="app"></main>
+
+<script>
+// =========================================================================
+// Datenhaltung: Firebase Realtime Database – gemeinsame, geteilte Datenbasis
+// für alle Mitarbeiter (Änderungen werden live an alle anderen offenen
+// Fenster übertragen). Solange die Daten noch nicht vom Server geladen
+// wurden, sind die Caches unten "null" und die App zeigt "Lädt...".
+// =========================================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC-Mi2WeHy9GRMFtCyRRlIP369JtwY1cqo",
+  authDomain: "catering-planer.firebaseapp.com",
+  databaseURL: "https://catering-planer-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "catering-planer",
+  storageBucket: "catering-planer.firebasestorage.app",
+  messagingSenderId: "962019898099",
+  appId: "1:962019898099:web:4651f30bf4e2028544bd86"
+};
+
+let _recipesCache = null; // null = noch nicht geladen
+let _eventsCache = null;
+let _seedAttempted = false;
+let _fbDb = null;
+
+function objToArray(obj) {
+  if (!obj) return [];
+  return Object.keys(obj).map(k => obj[k]);
+}
+function arrayToObj(arr) {
+  const obj = {};
+  (arr || []).forEach(item => { if (item && item.id) obj[item.id] = item; });
+  return obj;
+}
+
+function initFirebase() {
+  if (typeof firebase === 'undefined') {
+    // Firebase-SDK konnte nicht geladen werden (z.B. weil diese Seite in einer
+    // Vorschau ohne Internetzugriff läuft). App bleibt dann im Ladezustand.
+    document.getElementById('app').innerHTML =
+      '<div class="warning-box">Die gemeinsame Datenbank (Firebase) konnte nicht geladen werden. ' +
+      'Bitte diese Seite über den echten Link (z.B. GitHub Pages) mit Internetzugriff öffnen, ' +
+      'nicht über die Cowork-Vorschau.</div>';
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  _fbDb = firebase.database();
+
+  _fbDb.ref('recipes').on('value', snap => {
+    const val = snap.val();
+    if (val === null && !_seedAttempted) {
+      _seedAttempted = true;
+      _fbDb.ref('recipes').set(arrayToObj(loadSeedRecipes()));
+      return; // dieser Listener wird durch den .set() gleich erneut ausgelöst
+    }
+    _recipesCache = objToArray(val);
+    safeRoute();
+  });
+
+  _fbDb.ref('events').on('value', snap => {
+    _eventsCache = objToArray(snap.val());
+    safeRoute();
+  });
+}
+
+// Verhindert, dass ein Live-Update von einem anderen Mitarbeiter mitten in der Eingabe
+// (neues Event/Rezept anlegen oder bearbeiten) das gerade offene Formular überschreibt.
+function isEditingRoute() {
+  const h = (location.hash.slice(1) || '/').split('?')[0];
+  return h === '/events/new' || /^\/events\/[^/]+\/edit$/.test(h) ||
+         h === '/recipes/new' || /^\/recipes\/[^/]+\/edit$/.test(h);
+}
+let _firstRenderDone = false;
+function safeRoute() {
+  if (_firstRenderDone && isEditingRoute()) return;
+  _firstRenderDone = true;
+  route();
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtNum(n) {
+  if (n === null || n === undefined || n === '') return null;
+  const r = Math.round(n * 1000) / 1000;
+  return r;
+}
+
+const SERVICE_TYPE_LABELS = { foodtruck: 'Foodtruck', buffet: 'Buffet', live_cooking: 'Live Cooking' };
+
+function loadSeedRecipes() {
+  const el = document.getElementById('seed-data');
+  const raw = JSON.parse(el.textContent);
+  return raw.recipes.map(r => ({
+    id: uid(),
+    name: r.name,
+    description: r.description || '',
+    defaultServiceType: r.default_service_type || '',
+    needsReview: !!r.needs_review,
+    ingredients: (r.ingredients || []).map(ing => ({
+      id: uid(),
+      name: ing.name,
+      qtyPerPortion: (ing.qty_per_portion === undefined) ? null : ing.qty_per_portion,
+      unit: ing.unit || '',
+      allergens: (ing.allergens || []).join(', '),
+      supplier: ing.supplier || '',
+      container: ing.container || '',
+      tool: ing.tool || '',
+      variantGroup: ing.variant_group || ''
+    }))
+  }));
+}
+
+function getRecipes() { return _recipesCache || []; }
+function saveRecipes(list) {
+  _recipesCache = list; // optimistisch sofort lokal übernehmen, damit die UI ohne Wartezeit reagiert
+  if (_fbDb) _fbDb.ref('recipes').set(arrayToObj(list));
+}
+function getEvents() { return _eventsCache || []; }
+function saveEvents(list) {
+  _eventsCache = list;
+  if (_fbDb) _fbDb.ref('events').set(arrayToObj(list));
+}
+function getRecipeById(id) { return getRecipes().find(r => r.id === id); }
+function getEventById(id) { return getEvents().find(e => e.id === id); }
+
+function eventGuestTotal(ev) {
+  return (ev.fleischCount||0) + (ev.vegetarischCount||0) + (ev.veganCount||0) + (ev.sonstigeCount||0);
+}
+
+// Liefert {Gruppenname: [Zutatname, ...]} für alle Zutaten eines Rezepts, die eine Variantengruppe haben
+// (z.B. "Protein": ["Pulled Pork", "Pulled Turkey", "Pulled Jackfruit"])
+function getVariantGroups(recipe) {
+  const groups = {};
+  (recipe ? recipe.ingredients : []).forEach(ing => {
+    const g = (ing.variantGroup || '').trim();
+    if (!g) return;
+    groups[g] = groups[g] || [];
+    if (!groups[g].includes(ing.name)) groups[g].push(ing.name);
+  });
+  return groups;
+}
+
+// Wie viele Portionen gelten für eine bestimmte Zutat innerhalb eines Dish?
+// Zutaten OHNE Variantengruppe: die volle Portionenzahl des Gerichts.
+// Zutaten MIT Variantengruppe: der eingetragene Anteil aus dish.variantSplits, falls vorhanden,
+// sonst (noch nicht ausgefüllt) fallback auf die volle Portionenzahl.
+function getPortionsForIngredient(ing, dish) {
+  const group = (ing.variantGroup || '').trim();
+  if (!group) return dish.portions || 0;
+  const split = dish.variantSplits && dish.variantSplits[group] ? dish.variantSplits[group][ing.name] : undefined;
+  if (split === undefined || split === null || split === '') return dish.portions || 0;
+  return Number(split) || 0;
+}
+
+// Skalierte Zutaten für ein einzelnes Gericht (dish) berechnen
+function computeScaledIngredients(dish) {
+  const recipe = getRecipeById(dish.recipeId);
+  if (!recipe) return { dish, recipe: null, ingredients: [] };
+  const ingredients = recipe.ingredients.map(ing => {
+    const qty = (ing.qtyPerPortion === null || ing.qtyPerPortion === undefined || ing.qtyPerPortion === '') ? null : Number(ing.qtyPerPortion);
+    const portions = getPortionsForIngredient(ing, dish);
+    const totalQty = (qty === null) ? null : fmtNum(qty * portions);
+    return { name: ing.name, qtyPerPortion: qty, totalQty, unit: ing.unit, allergens: ing.allergens, supplier: ing.supplier, container: ing.container, tool: ing.tool, variantGroup: ing.variantGroup, portionsUsed: portions };
+  });
+  return { dish, recipe, ingredients };
+}
+
+// Bestellliste über mehrere Events aggregieren
+function aggregateOrderList(eventIds) {
+  const totals = new Map(); // key "name||unit" -> qty
+  const unresolved = [];
+  eventIds.forEach(eid => {
+    const ev = getEventById(eid);
+    if (!ev) return;
+    (ev.dishes||[]).forEach(dish => {
+      const recipe = getRecipeById(dish.recipeId);
+      if (!recipe) return;
+      recipe.ingredients.forEach(ing => {
+        const qty = (ing.qtyPerPortion === null || ing.qtyPerPortion === undefined || ing.qtyPerPortion === '') ? null : Number(ing.qtyPerPortion);
+        if (qty === null) {
+          unresolved.push({ name: ing.name, recipe: recipe.name, unit: ing.unit });
+          return;
+        }
+        const key = ing.name + '||' + (ing.unit || '');
+        const add = qty * getPortionsForIngredient(ing, dish);
+        totals.set(key, (totals.get(key) || 0) + add);
+      });
+    });
+  });
+  const rows = Array.from(totals.entries()).map(([key, qty]) => {
+    const [name, unit] = key.split('||');
+    return { name, unit, qty: fmtNum(qty) };
+  }).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  return { rows, unresolved };
+}
+
+// Allergene über mehrere Events aggregieren
+function aggregateAllergens(eventIds) {
+  const perDish = [];
+  const allSet = new Set();
+  eventIds.forEach(eid => {
+    const ev = getEventById(eid);
+    if (!ev) return;
+    (ev.dishes||[]).forEach(dish => {
+      const recipe = getRecipeById(dish.recipeId);
+      if (!recipe) return;
+      const dishSet = new Set();
+      recipe.ingredients.forEach(ing => {
+        (ing.allergens || '').split(',').map(a => a.trim()).filter(Boolean).forEach(a => { dishSet.add(a); allSet.add(a); });
+      });
+      perDish.push({ recipeName: recipe.name, stationLabel: dish.stationLabel, allergens: Array.from(dishSet).sort((a,b)=>a.localeCompare(b,'de')) });
+    });
+  });
+  return { perDish, allAllergens: Array.from(allSet).sort((a,b)=>a.localeCompare(b,'de')) };
+}
+
+// Tagesplan: alle Events eines Datums, nach Rezept gruppiert und Portionen summiert
+function computeDayPlan(dateStr) {
+  const events = getEvents().filter(e => e.date === dateStr).sort((a,b) => (a.departureTime||'').localeCompare(b.departureTime||''));
+  const grouped = new Map(); // recipeId -> { recipeName, totalPortions, events: [], dishes: [] }
+  events.forEach(ev => {
+    (ev.dishes||[]).forEach(dish => {
+      const recipe = getRecipeById(dish.recipeId);
+      if (!recipe) return;
+      if (!grouped.has(dish.recipeId)) {
+        grouped.set(dish.recipeId, { recipeId: dish.recipeId, recipeName: recipe.name, totalPortions: 0, events: [], dishes: [] });
+      }
+      const g = grouped.get(dish.recipeId);
+      g.totalPortions += (dish.portions || 0);
+      g.events.push({ eventName: ev.name, departureTime: ev.departureTime, stationLabel: dish.stationLabel, serviceType: dish.serviceType, portions: dish.portions });
+      g.dishes.push(dish);
+    });
+  });
+  // Zutatenmengen über alle beitragenden Dishes summieren (berücksichtigt Varianten-Verteilung korrekt,
+  // statt einfach mit der Gesamt-Portionenzahl zu multiplizieren)
+  const groups = Array.from(grouped.values()).map(g => {
+    const recipe = getRecipeById(g.recipeId);
+    const totalsByIng = new Map(); // name||unit -> {qty, allergens, supplier}
+    g.dishes.forEach(dish => {
+      const scaled = computeScaledIngredients(dish);
+      scaled.ingredients.forEach(ing => {
+        const key = ing.name + '||' + (ing.unit || '');
+        if (!totalsByIng.has(key)) {
+          totalsByIng.set(key, { name: ing.name, unit: ing.unit, allergens: ing.allergens, supplier: ing.supplier, qty: 0, anyNull: false });
+        }
+        const entry = totalsByIng.get(key);
+        if (ing.totalQty === null) entry.anyNull = true;
+        else entry.qty += ing.totalQty;
+      });
+    });
+    const ingredients = Array.from(totalsByIng.values()).map(e => ({
+      name: e.name, unit: e.unit, allergens: e.allergens, supplier: e.supplier,
+      totalQty: e.anyNull ? null : fmtNum(e.qty)
+    }));
+    return { recipeId: g.recipeId, recipeName: g.recipeName, totalPortions: g.totalPortions, events: g.events, ingredients };
+  });
+  return { events, groups };
+}
+
+// =========================================================================
+// Export / Import (Backup & Teilen mit Mitarbeitern)
+// =========================================================================
+function exportData() {
+  const payload = { recipes: getRecipes(), events: getEvents(), exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'foodtruck-daten-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function importDataFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const payload = JSON.parse(reader.result);
+      if (!confirm('Achtung: Dies überschreibt die GEMEINSAME Datenbank für ALLE Mitarbeiter mit dem Inhalt dieser Datei. Fortfahren?')) return;
+      if (payload.recipes) saveRecipes(payload.recipes);
+      if (payload.events) saveEvents(payload.events);
+      alert('Import erfolgreich.');
+      route();
+    } catch (e) {
+      alert('Fehler beim Import: ' + e.message);
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// =========================================================================
+// Löschen
+// =========================================================================
+function deleteEvent(id) {
+  if (!confirm('Event wirklich löschen?')) return;
+  saveEvents(getEvents().filter(e => e.id !== id));
+  location.hash = '#/';
+}
+function deleteRecipe(id) {
+  const inUse = getEvents().some(e => (e.dishes||[]).some(d => d.recipeId === id));
+  if (inUse) { alert('Dieses Rezept wird noch in mindestens einem Event verwendet und kann nicht gelöscht werden.'); return; }
+  if (!confirm('Rezept wirklich löschen?')) return;
+  saveRecipes(getRecipes().filter(r => r.id !== id));
+  location.hash = '#/recipes';
+}
+
+// =========================================================================
+// Formular-Handling: Events
+// =========================================================================
+// Baut die HTML-Eingabefelder für die Verteilung von Varianten-Zutaten (z.B. Protein-Auswahl) eines Rezepts.
+// Gibt '' zurück, wenn das Rezept keine Variantengruppen hat.
+function renderVariantBlockHtml(recipeId, variantSplits) {
+  const recipe = getRecipeById(recipeId);
+  if (!recipe) return '';
+  const groups = getVariantGroups(recipe);
+  const groupNames = Object.keys(groups);
+  if (!groupNames.length) return '';
+  return groupNames.map(gname => {
+    const inputs = groups[gname].map(iname => {
+      const val = (variantSplits && variantSplits[gname] && variantSplits[gname][iname] !== undefined) ? variantSplits[gname][iname] : '';
+      return `<div class="field" style="margin-bottom:0;"><label>${esc(iname)}</label><input type="number" min="0" data-variant-group="${esc(gname)}" data-variant-name="${esc(iname)}" class="variant-input" value="${val}"></div>`;
+    }).join('');
+    return `<div class="variant-group-block"><div class="muted" style="margin-bottom:4px;">Verteilung "${esc(gname)}" – wie viele Portionen von jeder Variante? (Summe sollte der Portionenzahl oben entsprechen)</div><div class="row-auto">${inputs}</div></div>`;
+  }).join('');
+}
+
+function onDishRecipeChange(selectEl) {
+  const row = selectEl.closest('.dish-row');
+  const block = row.querySelector('.variant-block');
+  block.innerHTML = renderVariantBlockHtml(selectEl.value, null);
+}
+
+function addDishRow(recipeId, serviceType, stationLabel, portions, variantSplits) {
+  const recipes = getRecipes();
+  const container = document.getElementById('dish-list');
+  const optionsHtml = recipes.map(r => `<option value="${r.id}" ${r.id === recipeId ? 'selected' : ''}>${esc(r.name)}${r.needsReview ? ' (⚠ prüfen)' : ''}</option>`).join('');
+  const serviceOptionsHtml = Object.entries(SERVICE_TYPE_LABELS).map(([k, l]) => `<option value="${k}" ${k === serviceType ? 'selected' : ''}>${l}</option>`).join('');
+  const row = document.createElement('div');
+  row.className = 'dish-row';
+  row.innerHTML = `
+    <div class="dish-row-grid">
+      <div class="field" style="margin-bottom:0;"><label>Rezept / Menü</label>
+        <select name="dishRecipeId" onchange="onDishRecipeChange(this)"><option value="">-- wählen --</option>${optionsHtml}</select></div>
+      <div class="field" style="margin-bottom:0;"><label>Ausgabeform</label>
+        <select name="dishServiceType">${serviceOptionsHtml}</select></div>
+      <div class="field" style="margin-bottom:0;"><label>Station</label>
+        <input type="text" name="dishStationLabel" value="${esc(stationLabel||'')}"></div>
+      <div class="field" style="margin-bottom:0;"><label>Portionen</label>
+        <input type="number" min="0" name="dishPortions" value="${portions||0}"></div>
+      <button type="button" class="remove-btn" onclick="this.closest('.dish-row').remove()">✕</button>
+    </div>
+    <div class="variant-block">${renderVariantBlockHtml(recipeId, variantSplits)}</div>`;
+  container.appendChild(row);
+}
+
+function submitEventForm(ev, id) {
+  ev.preventDefault();
+  const form = ev.target;
+  const data = {
+    id: id || uid(),
+    name: form.eventName.value.trim() || 'Unbenanntes Event',
+    date: form.eventDate.value,
+    departureTime: form.departureTime.value,
+    location: form.eventLocation.value,
+    notes: form.eventNotes.value,
+    fleischCount: parseInt(form.fleischCount.value || 0, 10),
+    vegetarischCount: parseInt(form.vegetarischCount.value || 0, 10),
+    veganCount: parseInt(form.veganCount.value || 0, 10),
+    sonstigeLabel: form.sonstigeLabel.value,
+    sonstigeCount: parseInt(form.sonstigeCount.value || 0, 10),
+    dishes: []
+  };
+  form.querySelectorAll('.dish-row').forEach(row => {
+    const recipeId = row.querySelector('[name=dishRecipeId]').value;
+    if (!recipeId) return;
+    const variantSplits = {};
+    row.querySelectorAll('.variant-input').forEach(inp => {
+      if (inp.value === '') return;
+      const g = inp.dataset.variantGroup, n = inp.dataset.variantName;
+      variantSplits[g] = variantSplits[g] || {};
+      variantSplits[g][n] = Number(inp.value);
+    });
+    data.dishes.push({
+      id: uid(),
+      recipeId,
+      serviceType: row.querySelector('[name=dishServiceType]').value,
+      stationLabel: row.querySelector('[name=dishStationLabel]').value,
+      portions: parseInt(row.querySelector('[name=dishPortions]').value || 0, 10),
+      variantSplits
+    });
+  });
+  const events = getEvents();
+  const idx = events.findIndex(e => e.id === data.id);
+  if (idx >= 0) events[idx] = data; else events.push(data);
+  saveEvents(events);
+  location.hash = '#/events/' + data.id;
+  return false;
+}
+
+// =========================================================================
+// Formular-Handling: Rezepte
+// =========================================================================
+function addIngRow(name, qty, unit, allergens, supplier, container, tool, variantGroup) {
+  const list = document.getElementById('ing-list');
+  const row = document.createElement('div');
+  row.className = 'ing-row';
+  row.innerHTML = `
+    <div class="ing-row-grid">
+      <div class="field" style="margin-bottom:0;"><label>Zutat</label><input type="text" name="ingName" value="${esc(name||'')}"></div>
+      <div class="field" style="margin-bottom:0;"><label>Menge/Port.</label><input type="number" step="0.001" name="ingQty" value="${(qty===null||qty===undefined)?'':qty}"></div>
+      <div class="field" style="margin-bottom:0;"><label>Einheit</label><input type="text" name="ingUnit" value="${esc(unit||'')}"></div>
+      <div class="field" style="margin-bottom:0;"><label>Allergene</label><input type="text" name="ingAllergens" value="${esc(allergens||'')}"></div>
+      <div class="field" style="margin-bottom:0;"><label>Lieferant</label><input type="text" name="ingSupplier" value="${esc(supplier||'')}"></div>
+      <div class="field" style="margin-bottom:0;"><label>Behälter</label><input type="text" name="ingContainer" value="${esc(container||'')}"></div>
+      <div class="field" style="margin-bottom:0;"><label>Werkzeug</label><input type="text" name="ingTool" value="${esc(tool||'')}"></div>
+      <div class="field" style="margin-bottom:0;"><label>Variantengruppe</label><input type="text" name="ingVariantGroup" placeholder="z.B. Protein" value="${esc(variantGroup||'')}"></div>
+      <button type="button" class="remove-btn" onclick="this.closest('.ing-row').remove()">✕</button>
+    </div>`;
+  list.appendChild(row);
+}
+
+function submitRecipeForm(ev, id) {
+  ev.preventDefault();
+  const form = ev.target;
+  const data = {
+    id: id || uid(),
+    name: form.recipeName.value.trim() || 'Unbenanntes Rezept',
+    description: form.recipeDescription.value,
+    defaultServiceType: form.recipeDefaultServiceType.value,
+    needsReview: form.recipeNeedsReview.checked,
+    ingredients: []
+  };
+  form.querySelectorAll('.ing-row').forEach(row => {
+    const name = row.querySelector('[name=ingName]').value.trim();
+    if (!name) return;
+    const qtyRaw = row.querySelector('[name=ingQty]').value;
+    data.ingredients.push({
+      id: uid(),
+      name,
+      qtyPerPortion: qtyRaw === '' ? null : Number(qtyRaw),
+      unit: row.querySelector('[name=ingUnit]').value,
+      allergens: row.querySelector('[name=ingAllergens]').value,
+      supplier: row.querySelector('[name=ingSupplier]').value,
+      container: row.querySelector('[name=ingContainer]').value,
+      tool: row.querySelector('[name=ingTool]').value,
+      variantGroup: row.querySelector('[name=ingVariantGroup]').value.trim()
+    });
+  });
+  const recipes = getRecipes();
+  const idx = recipes.findIndex(r => r.id === data.id);
+  if (idx >= 0) recipes[idx] = data; else recipes.push(data);
+  saveRecipes(recipes);
+  location.hash = '#/recipes/' + data.id;
+  return false;
+}
+
+// =========================================================================
+// Views
+// =========================================================================
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function viewDashboard() {
+  const today = todayStr();
+  const events = getEvents();
+  const upcoming = events.filter(e => e.date >= today).sort((a,b) => a.date.localeCompare(b.date) || (a.departureTime||'').localeCompare(b.departureTime||''));
+  const past = events.filter(e => e.date < today).sort((a,b) => b.date.localeCompare(a.date)).slice(0, 10);
+
+  const rowHtml = (ev, secondary) => `
+    <div class="card card-row">
+      <div>
+        <strong>${esc(ev.name)}</strong> – ${esc(ev.date)}${ev.departureTime ? ' · Abfahrt ' + esc(ev.departureTime) : ''}
+        <div class="muted">Gäste gesamt: ${eventGuestTotal(ev)} (Fleisch ${ev.fleischCount||0} / Vegetarisch ${ev.vegetarischCount||0} / Vegan ${ev.veganCount||0}${ev.sonstigeCount ? ' / ' + esc(ev.sonstigeLabel||'Sonstige') + ' ' + ev.sonstigeCount : ''})</div>
+      </div>
+      <div><a class="btn btn-small ${secondary?'btn-secondary':''}" href="#/events/${ev.id}">Öffnen</a></div>
+    </div>`;
+
+  return `
+    <h1>Events</h1>
+    <div class="card no-print">
+      <form onsubmit="event.preventDefault(); location.hash='#/day-plan?date=' + this.d.value;" style="display:flex; gap:10px; align-items:end;">
+        <div class="field" style="flex:1; margin-bottom:0;"><label>Tages-Kochplan für Datum ansehen</label><input type="date" name="d"></div>
+        <button class="btn" type="submit">Kochplan öffnen</button>
+      </form>
+    </div>
+    <h2>Kommende Events</h2>
+    ${upcoming.length ? upcoming.map(ev => rowHtml(ev, false)).join('') : '<p class="muted">Keine kommenden Events. <a href="#/events/new">Jetzt Event anlegen</a>.</p>'}
+    <h2>Vergangene Events (letzte 10)</h2>
+    ${past.length ? past.map(ev => rowHtml(ev, true)).join('') : '<p class="muted">Keine vergangenen Events.</p>'}
+  `;
+}
+
+function viewEventForm(id) {
+  const ev = id ? getEventById(id) : null;
+  if (id && !ev) return notFound('Event nicht gefunden.', '#/');
+  const dishes = ev ? ev.dishes : [];
+  setTimeout(() => {
+    dishes.forEach(d => addDishRow(d.recipeId, d.serviceType, d.stationLabel, d.portions, d.variantSplits));
+  }, 0);
+  return `
+    <h1>${ev ? 'Event bearbeiten: ' + esc(ev.name) : 'Neues Event anlegen'}</h1>
+    <form onsubmit="return submitEventForm(event, ${ev ? "'"+ev.id+"'" : 'null'})">
+      <div class="card">
+        <h3>Grunddaten</h3>
+        <div class="row3">
+          <div class="field"><label>Name (Kunde / Event)</label><input type="text" name="eventName" required value="${esc(ev?ev.name:'')}"></div>
+          <div class="field"><label>Datum</label><input type="date" name="eventDate" required value="${ev?ev.date:''}"></div>
+          <div class="field"><label>Uhrzeit Abfahrt</label><input type="time" name="departureTime" value="${ev?ev.departureTime||'':''}"></div>
+        </div>
+        <div class="row3">
+          <div class="field"><label>Ort / Info</label><input type="text" name="eventLocation" value="${esc(ev?ev.location||'':'')}"></div>
+          <div class="field" style="grid-column: span 2;"><label>Notizen</label><input type="text" name="eventNotes" value="${esc(ev?ev.notes||'':'')}"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Personenanzahl</h3>
+        <div class="row4">
+          <div class="field"><label>Fleischessende</label><input type="number" min="0" name="fleischCount" value="${ev?ev.fleischCount||0:0}"></div>
+          <div class="field"><label>Vegetarisch essende</label><input type="number" min="0" name="vegetarischCount" value="${ev?ev.vegetarischCount||0:0}"></div>
+          <div class="field"><label>Vegan essende</label><input type="number" min="0" name="veganCount" value="${ev?ev.veganCount||0:0}"></div>
+          <div class="field">
+            <label>Sonstige (optional)</label>
+            <input type="text" name="sonstigeLabel" placeholder="Bezeichnung" value="${esc(ev?ev.sonstigeLabel||'':'')}" style="margin-bottom:6px;">
+            <input type="number" min="0" name="sonstigeCount" placeholder="Anzahl" value="${ev?ev.sonstigeCount||0:0}">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Menü / Rezeptauswahl</h3>
+        <p class="muted">Für jedes Gericht: Rezept wählen, Ausgabeform festlegen und die Portionenanzahl angeben.</p>
+        <div id="dish-list"></div>
+        <button type="button" class="btn btn-secondary btn-small" onclick="addDishRow()">+ Gericht hinzufügen</button>
+      </div>
+      <button class="btn" type="submit">Speichern</button>
+      <a class="btn btn-secondary" href="#/">Abbrechen</a>
+    </form>
+  `;
+}
+
+function viewEventDetail(id) {
+  const ev = getEventById(id);
+  if (!ev) return notFound('Event nicht gefunden.', '#/');
+  const dishRows = (ev.dishes||[]).map(d => {
+    const recipe = getRecipeById(d.recipeId);
+    const variantGroups = recipe ? getVariantGroups(recipe) : {};
+    const splitText = Object.keys(variantGroups).map(gname =>
+      variantGroups[gname].map(n => `${esc(n)}: ${(d.variantSplits && d.variantSplits[gname] && d.variantSplits[gname][n]) || 0}`).join(' / ')
+    ).join(' · ');
+    return `<tr>
+      <td>${esc(recipe ? recipe.name : '(gelöschtes Rezept)')}${recipe && recipe.needsReview ? ' <span class="badge badge-review">⚠ Mengen prüfen</span>' : ''}</td>
+      <td><span class="badge badge-${d.serviceType}">${SERVICE_TYPE_LABELS[d.serviceType] || d.serviceType}</span></td>
+      <td>${esc(d.stationLabel||'-')}</td>
+      <td>${d.portions}${splitText ? '<br><span class="muted">'+splitText+'</span>' : ''}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <h1>${esc(ev.name)}</h1>
+    <p class="muted">${esc(ev.date)}${ev.departureTime ? ' · Abfahrt ' + esc(ev.departureTime) : ''}${ev.location ? ' · ' + esc(ev.location) : ''}</p>
+    ${ev.notes ? '<p>' + esc(ev.notes) + '</p>' : ''}
+    <div class="card">
+      <h3>Personenanzahl</h3>
+      <p>Fleischessende: <strong>${ev.fleischCount||0}</strong> ·
+         Vegetarisch: <strong>${ev.vegetarischCount||0}</strong> ·
+         Vegan: <strong>${ev.veganCount||0}</strong>
+         ${ev.sonstigeCount ? ' · ' + esc(ev.sonstigeLabel||'Sonstige') + ': <strong>' + ev.sonstigeCount + '</strong>' : ''}
+         · Gesamt: <strong>${eventGuestTotal(ev)}</strong></p>
+    </div>
+    <div class="card">
+      <h3>Menü</h3>
+      ${ev.dishes && ev.dishes.length ? `<table><tr><th>Gericht</th><th>Ausgabeform</th><th>Station</th><th>Portionen</th></tr>${dishRows}</table>` : '<p class="muted">Noch keine Gerichte zugeordnet.</p>'}
+    </div>
+    <div class="no-print">
+      <a class="btn" href="#/events/${ev.id}/briefing">Küchenbriefing</a>
+      <a class="btn" href="#/events/${ev.id}/allergens">Allergenliste</a>
+      <a class="btn" href="#/events/${ev.id}/orders">Bestellliste</a>
+      <a class="btn btn-secondary" href="#/events/${ev.id}/edit">Bearbeiten</a>
+      <button class="btn btn-danger" onclick="deleteEvent('${ev.id}')">Löschen</button>
+    </div>
+  `;
+}
+
+function viewKitchenBriefing(id) {
+  const ev = getEventById(id);
+  if (!ev) return notFound('Event nicht gefunden.', '#/');
+  const blocks = (ev.dishes||[]).map(d => {
+    const { recipe, ingredients } = computeScaledIngredients(d);
+    if (!recipe) return '';
+    const rows = ingredients.map(ing => `<tr>
+      <td>${esc(ing.name)}${ing.variantGroup ? ' <span class="badge">'+esc(ing.variantGroup)+'</span>' : ''}</td>
+      <td>${ing.qtyPerPortion !== null ? ing.qtyPerPortion + ' ' + esc(ing.unit||'') : '<span class="muted">?</span>'}</td>
+      <td>${ing.totalQty !== null ? '<strong>' + ing.totalQty + ' ' + esc(ing.unit||'') + '</strong>' : '<span class="muted">bitte prüfen</span>'}${ing.variantGroup ? ' <span class="muted">(' + ing.portionsUsed + ' Port.)</span>' : ''}</td>
+      <td>${esc(ing.allergens||'')}</td>
+      <td>${esc(ing.supplier||'')}</td>
+      <td>${esc(ing.container||'')}</td>
+      <td>${esc(ing.tool||'')}</td>
+    </tr>`).join('');
+    const variantGroups = getVariantGroups(recipe);
+    const splitSummary = Object.keys(variantGroups).map(gname => {
+      const parts = variantGroups[gname].map(n => `${esc(n)}: ${(d.variantSplits && d.variantSplits[gname] && d.variantSplits[gname][n]) || 0}`).join(' / ');
+      return `${esc(gname)} – ${parts}`;
+    }).join(' · ');
+    return `
+      <div class="card">
+        <h2>${esc(recipe.name)} <span class="badge badge-${d.serviceType}">${SERVICE_TYPE_LABELS[d.serviceType]||d.serviceType}</span>${d.stationLabel ? ' <span class="badge">'+esc(d.stationLabel)+'</span>' : ''}</h2>
+        <p><strong>${d.portions} Portionen</strong>${splitSummary ? ' · ' + splitSummary : ''}</p>
+        ${recipe.needsReview ? `<div class="warning-box">⚠ Die Mengenangaben dieses Rezepts sind noch nicht final geprüft. Bitte im <a href="#/recipes/${recipe.id}/edit">Rezept bearbeiten</a> ergänzen/kontrollieren.</div>` : ''}
+        <table><tr><th>Zutat</th><th>Menge/Portion</th><th>Gesamtmenge</th><th>Allergene</th><th>Lieferant</th><th>Behälter</th><th>Werkzeug</th></tr>${rows}</table>
+      </div>`;
+  }).join('');
+  return `
+    <h1>Küchenbriefing: ${esc(ev.name)}</h1>
+    <p>${esc(ev.date)}${ev.departureTime ? ' · Abfahrt ' + esc(ev.departureTime) : ''} · Gäste gesamt: ${eventGuestTotal(ev)}
+       (Fleisch ${ev.fleischCount||0} / Vegetarisch ${ev.vegetarischCount||0} / Vegan ${ev.veganCount||0}${ev.sonstigeCount ? ' / ' + esc(ev.sonstigeLabel||'Sonstige') + ' ' + ev.sonstigeCount : ''})</p>
+    <div class="no-print" style="margin-bottom:14px;">
+      <button class="btn" onclick="window.print()">Drucken</button>
+      <a class="btn btn-secondary" href="#/events/${ev.id}">Zurück zum Event</a>
+    </div>
+    ${blocks}
+  `;
+}
+
+function viewAllergenList(id) {
+  const ev = getEventById(id);
+  if (!ev) return notFound('Event nicht gefunden.', '#/');
+  const { perDish, allAllergens } = aggregateAllergens([id]);
+  return `
+    <h1>Allergenliste: ${esc(ev.name)}</h1>
+    <p>${esc(ev.date)}${ev.departureTime ? ' · Abfahrt ' + esc(ev.departureTime) : ''}</p>
+    <div class="no-print" style="margin-bottom:14px;">
+      <button class="btn" onclick="window.print()">Drucken</button>
+      <a class="btn btn-secondary" href="#/events/${ev.id}">Zurück zum Event</a>
+    </div>
+    <div class="card">
+      <h3>Alle Allergene im Event</h3>
+      ${allAllergens.length ? '<p>' + allAllergens.map(a => `<span class="badge" style="margin-right:6px;">${esc(a)}</span>`).join('') + '</p>' : '<p class="muted">Keine Allergene erfasst.</p>'}
+    </div>
+    <div class="card">
+      <h3>Nach Gericht</h3>
+      <table><tr><th>Gericht</th><th>Station</th><th>Allergene</th></tr>
+      ${perDish.map(d => `<tr><td>${esc(d.recipeName)}</td><td>${esc(d.stationLabel||'-')}</td><td>${d.allergens.length ? esc(d.allergens.join(', ')) : '<span class="muted">keine erfasst</span>'}</td></tr>`).join('')}
+      </table>
+    </div>
+    <p class="muted">Hinweis: Diese Liste basiert auf den in der Rezeptdatenbank hinterlegten Allergenangaben. Bitte bei neuen/geänderten Rezepten die Allergene sorgfältig pflegen.</p>
+  `;
+}
+
+function viewOrderList(eventIds, title, opts) {
+  opts = opts || {};
+  const { rows, unresolved } = aggregateOrderList(eventIds);
+  const events = eventIds.map(getEventById).filter(Boolean);
+  return `
+    <h1>${esc(title)}</h1>
+    ${opts.isRangeForm ? `
+    <div class="card no-print">
+      <form onsubmit="event.preventDefault(); location.hash='#/orders?start=' + this.s.value + '&end=' + this.e.value;" style="display:flex; gap:10px; align-items:end;">
+        <div class="field" style="margin-bottom:0;"><label>Von</label><input type="date" name="s" value="${opts.start||''}"></div>
+        <div class="field" style="margin-bottom:0;"><label>Bis</label><input type="date" name="e" value="${opts.end||''}"></div>
+        <button class="btn" type="submit">Bestellliste anzeigen</button>
+      </form>
+    </div>` : ''}
+    <div class="no-print" style="margin-bottom:14px;"><button class="btn" onclick="window.print()">Drucken</button></div>
+    ${events.length ? `<div class="card"><h3>Enthaltene Events</h3><ul>${events.map(e => `<li>${esc(e.name)} – ${esc(e.date)}</li>`).join('')}</ul></div>` : ''}
+    <div class="card">
+      <h3>Zutaten gesamt</h3>
+      ${rows.length ? `<table><tr><th>Zutat</th><th>Menge</th><th>Einheit</th><th></th></tr>${rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.qty}</td><td>${esc(r.unit)}</td><td><input type="checkbox"></td></tr>`).join('')}</table>` : '<p class="muted">Keine Zutaten mit bekannter Menge/Portion gefunden.</p>'}
+    </div>
+    ${unresolved.length ? `<div class="warning-box"><strong>⚠ ${unresolved.length} Zutat(en) ohne bekannte Menge pro Portion</strong> – nicht in der Summe oben enthalten. Bitte in den Rezepten ergänzen: <ul>${unresolved.map(u => `<li>${esc(u.name)} (${esc(u.recipe)})</li>`).join('')}</ul></div>` : ''}
+  `;
+}
+
+function viewDayPlan(dateStr) {
+  dateStr = dateStr || todayStr();
+  const { events, groups } = computeDayPlan(dateStr);
+  return `
+    <h1>Tages-Kochplan: ${esc(dateStr)}</h1>
+    <div class="card no-print">
+      <form onsubmit="event.preventDefault(); location.hash='#/day-plan?date=' + this.d.value;" style="display:flex; gap:10px; align-items:end;">
+        <div class="field" style="margin-bottom:0;"><label>Datum wählen</label><input type="date" name="d" value="${esc(dateStr)}"></div>
+        <button class="btn" type="submit">Anzeigen</button>
+      </form>
+    </div>
+    <div class="no-print" style="margin-bottom:14px;">
+      <button class="btn" onclick="window.print()">Drucken</button>
+      ${events.length ? `<a class="btn btn-secondary" href="#/orders?start=${esc(dateStr)}&end=${esc(dateStr)}">Bestellliste für diesen Tag</a>` : ''}
+    </div>
+    <div class="card">
+      <h3>Events an diesem Tag</h3>
+      ${events.length ? `<table><tr><th>Event</th><th>Abfahrt</th><th>Gäste gesamt</th></tr>${events.map(ev => `<tr><td><a href="#/events/${ev.id}">${esc(ev.name)}</a></td><td>${esc(ev.departureTime||'-')}</td><td>${eventGuestTotal(ev)}</td></tr>`).join('')}</table>` : '<p class="muted">Keine Events an diesem Datum.</p>'}
+    </div>
+    ${groups.length ? `
+    <h2>Produktion nach Rezept zusammengefasst</h2>
+    <p class="muted">Portionen mehrerer Events für dasselbe Gericht wurden addiert.</p>
+    ${groups.map(g => `
+      <div class="card">
+        <h3>${esc(g.recipeName)} – gesamt ${g.totalPortions} Portionen</h3>
+        <table><tr><th>Verwendet in</th><th>Abfahrt</th><th>Station</th><th>Ausgabeform</th><th>Portionen</th></tr>
+        ${g.events.map(e => `<tr><td>${esc(e.eventName)}</td><td>${esc(e.departureTime||'-')}</td><td>${esc(e.stationLabel||'-')}</td><td><span class="badge badge-${e.serviceType}">${SERVICE_TYPE_LABELS[e.serviceType]||e.serviceType}</span></td><td>${e.portions}</td></tr>`).join('')}
+        </table>
+        <table><tr><th>Zutat</th><th>Gesamtmenge (alle Events)</th><th>Allergene</th><th>Lieferant</th></tr>
+        ${g.ingredients.map(ing => `<tr><td>${esc(ing.name)}</td><td>${ing.totalQty !== null ? '<strong>'+ing.totalQty+' '+esc(ing.unit||'')+'</strong>' : '<span class="muted">bitte prüfen</span>'}</td><td>${esc(ing.allergens||'')}</td><td>${esc(ing.supplier||'')}</td></tr>`).join('')}
+        </table>
+      </div>`).join('')}
+    ` : ''}
+  `;
+}
+
+function viewRecipeList() {
+  const recipes = getRecipes().slice().sort((a,b) => a.name.localeCompare(b.name, 'de'));
+  return `
+    <h1>Rezeptdatenbank</h1>
+    <a class="btn" href="#/recipes/new">+ Neues Rezept</a>
+    <div class="card" style="margin-top:14px;">
+      <table><tr><th>Name</th><th>Standard-Ausgabeform</th><th>Status</th><th></th></tr>
+      ${recipes.map(r => `<tr>
+        <td><a href="#/recipes/${r.id}">${esc(r.name)}</a></td>
+        <td>${SERVICE_TYPE_LABELS[r.defaultServiceType] || '-'}</td>
+        <td>${r.needsReview ? '<span class="badge badge-review">⚠ Mengen prüfen</span>' : '<span class="badge badge-ok">geprüft</span>'}</td>
+        <td><a class="btn btn-small btn-secondary" href="#/recipes/${r.id}/edit">Bearbeiten</a></td>
+      </tr>`).join('')}
+      </table>
+    </div>
+  `;
+}
+
+function viewRecipeForm(id) {
+  const recipe = id ? getRecipeById(id) : null;
+  if (id && !recipe) return notFound('Rezept nicht gefunden.', '#/recipes');
+  const ingredients = recipe ? recipe.ingredients : [];
+  setTimeout(() => {
+    ingredients.forEach(i => addIngRow(i.name, i.qtyPerPortion, i.unit, i.allergens, i.supplier, i.container, i.tool, i.variantGroup));
+  }, 0);
+  const serviceOptions = Object.entries(SERVICE_TYPE_LABELS).map(([k,l]) => `<option value="${k}" ${recipe && recipe.defaultServiceType===k ? 'selected':''}>${l}</option>`).join('');
+  return `
+    <h1>${recipe ? 'Rezept bearbeiten: ' + esc(recipe.name) : 'Neues Rezept anlegen'}</h1>
+    <form onsubmit="return submitRecipeForm(event, ${recipe ? "'"+recipe.id+"'" : 'null'})">
+      <div class="card">
+        <div class="row3">
+          <div class="field"><label>Name</label><input type="text" name="recipeName" required value="${esc(recipe?recipe.name:'')}"></div>
+          <div class="field"><label>Standard-Ausgabeform</label><select name="recipeDefaultServiceType"><option value="">-- keine --</option>${serviceOptions}</select></div>
+          <div class="field-inline"><input type="checkbox" name="recipeNeedsReview" ${recipe && recipe.needsReview ? 'checked' : ''}> <label style="margin:0;">Mengen noch nicht final geprüft</label></div>
+        </div>
+        <div class="field"><label>Beschreibung</label><textarea name="recipeDescription" rows="2">${esc(recipe?recipe.description:'')}</textarea></div>
+      </div>
+      <div class="card">
+        <h3>Zutaten</h3>
+        <div id="ing-list"></div>
+        <button type="button" class="btn btn-secondary btn-small" onclick="addIngRow()">+ Zutat hinzufügen</button>
+      </div>
+      <button class="btn" type="submit">Speichern</button>
+      <a class="btn btn-secondary" href="#/recipes">Abbrechen</a>
+    </form>
+  `;
+}
+
+function viewRecipeDetail(id) {
+  const recipe = getRecipeById(id);
+  if (!recipe) return notFound('Rezept nicht gefunden.', '#/recipes');
+  return `
+    <h1>${esc(recipe.name)} ${recipe.needsReview ? '<span class="badge badge-review">⚠ Mengen prüfen</span>' : ''}</h1>
+    ${recipe.description ? '<p>' + esc(recipe.description) + '</p>' : ''}
+    <p class="muted">Standard-Ausgabeform: ${SERVICE_TYPE_LABELS[recipe.defaultServiceType] || '-'}</p>
+    <div class="card">
+      <table><tr><th>Zutat</th><th>Menge/Portion</th><th>Allergene</th><th>Lieferant</th><th>Behälter</th><th>Werkzeug</th><th>Variantengruppe</th></tr>
+      ${recipe.ingredients.map(ing => `<tr>
+        <td>${esc(ing.name)}</td>
+        <td>${ing.qtyPerPortion !== null && ing.qtyPerPortion !== undefined ? ing.qtyPerPortion + ' ' + esc(ing.unit||'') : '<span class="muted">unbekannt</span>'}</td>
+        <td>${esc(ing.allergens||'')}</td><td>${esc(ing.supplier||'')}</td><td>${esc(ing.container||'')}</td><td>${esc(ing.tool||'')}</td><td>${esc(ing.variantGroup||'')}</td>
+      </tr>`).join('')}
+      </table>
+    </div>
+    <a class="btn" href="#/recipes/${recipe.id}/edit">Bearbeiten</a>
+    <a class="btn btn-secondary" href="#/recipes">Zurück zur Übersicht</a>
+    <button class="btn btn-danger" onclick="deleteRecipe('${recipe.id}')">Löschen</button>
+  `;
+}
+
+function notFound(msg, backHref) {
+  return `<div class="flash flash-error">${esc(msg)}</div><a class="btn" href="${backHref}">Zurück</a>`;
+}
+
+// =========================================================================
+// Router
+// =========================================================================
+function parseQuery(qs) {
+  const params = {};
+  if (!qs) return params;
+  qs.split('&').forEach(pair => {
+    const [k, v] = pair.split('=');
+    if (k) params[decodeURIComponent(k)] = decodeURIComponent(v || '');
+  });
+  return params;
+}
+
+function route() {
+  const app = document.getElementById('app');
+  if (_recipesCache === null || _eventsCache === null) {
+    app.innerHTML = '<p class="muted">Lade Daten aus der gemeinsamen Datenbank…</p>';
+    return;
+  }
+  const full = location.hash.slice(1) || '/';
+  const [pathPart, qsPart] = full.split('?');
+  const q = parseQuery(qsPart);
+  let html = '';
+  let m;
+  if (pathPart === '/' || pathPart === '') html = viewDashboard();
+  else if (pathPart === '/events/new') html = viewEventForm(null);
+  else if ((m = pathPart.match(/^\/events\/([^\/]+)\/edit$/))) html = viewEventForm(m[1]);
+  else if ((m = pathPart.match(/^\/events\/([^\/]+)\/briefing$/))) html = viewKitchenBriefing(m[1]);
+  else if ((m = pathPart.match(/^\/events\/([^\/]+)\/allergens$/))) html = viewAllergenList(m[1]);
+  else if ((m = pathPart.match(/^\/events\/([^\/]+)\/orders$/))) html = viewOrderList([m[1]], 'Bestellliste – ' + ((getEventById(m[1])||{}).name || ''), {});
+  else if ((m = pathPart.match(/^\/events\/([^\/]+)$/))) html = viewEventDetail(m[1]);
+  else if (pathPart === '/recipes') html = viewRecipeList();
+  else if (pathPart === '/recipes/new') html = viewRecipeForm(null);
+  else if ((m = pathPart.match(/^\/recipes\/([^\/]+)\/edit$/))) html = viewRecipeForm(m[1]);
+  else if ((m = pathPart.match(/^\/recipes\/([^\/]+)$/))) html = viewRecipeDetail(m[1]);
+  else if (pathPart === '/day-plan') html = viewDayPlan(q.date);
+  else if (pathPart === '/orders') {
+    if (q.start && q.end) {
+      const ids = getEvents().filter(e => e.date >= q.start && e.date <= q.end).map(e => e.id);
+      html = viewOrderList(ids, 'Bestellliste ' + q.start + ' – ' + q.end, { isRangeForm: true, start: q.start, end: q.end });
+    } else {
+      html = viewOrderList([], 'Bestellliste (Zeitraum wählen)', { isRangeForm: true, start: q.start, end: q.end });
+    }
+  }
+  else html = viewDashboard();
+  app.innerHTML = html;
+}
+
+window.addEventListener('hashchange', route);
+window.addEventListener('DOMContentLoaded', () => { initFirebase(); route(); });
+</script>
+</body>
+</html>
